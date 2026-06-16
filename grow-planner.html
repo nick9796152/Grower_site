@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Build My Garden — Soilworks</title>
+<meta name="description" content="Tell us your spot and we build your dated garden plan — from bare dirt to picking food. A free tool from Soilworks." />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0a0e0c; --surface:#121814; --surface-2:#0e1411; --border:#243029;
+    --text:#eef2ef; --muted:#93a09a;
+    --green:#3da86e; --green-bright:#52c787; --green-dim:rgba(61,168,110,0.12); --green-dim2:rgba(61,168,110,0.22);
+    --gold:#d9b455; --tomato:#e0533d;
+    --radius:14px; --radius-lg:22px;
+    --serif:'Playfair Display',Georgia,serif; --sans:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:radial-gradient(ellipse 90% 50% at 50% 0%, #07251700 0%, transparent 60%),var(--bg);
+    color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh;line-height:1.6}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;max-width:820px;margin:0 auto}
+  .brand{font-weight:700;font-size:1.05rem;display:flex;align-items:center;gap:8px}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green)}
+  .brand-tag{font-size:0.7rem;color:var(--muted);font-weight:500;letter-spacing:0.12em;text-transform:uppercase}
+
+  .progress-wrap{max-width:820px;margin:0 auto;padding:0 24px}
+  .progress-track{height:4px;background:var(--border);border-radius:99px;overflow:hidden}
+  .progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--green),var(--green-bright));border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+  .progress-label{font-size:0.72rem;color:var(--muted);margin-top:8px;letter-spacing:0.06em;text-transform:uppercase}
+
+  .stage{max-width:720px;margin:0 auto;padding:34px 24px 120px}
+  .screen{display:none}
+  .screen.active{display:block;animation:rise .5s cubic-bezier(.2,.7,.3,1)}
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+  .eyebrow{display:inline-flex;align-items:center;gap:7px;background:var(--green-dim);color:var(--green-bright);
+    border:1px solid var(--green-dim2);padding:6px 14px;border-radius:99px;font-size:0.74rem;font-weight:600;
+    letter-spacing:0.08em;text-transform:uppercase;margin-bottom:20px}
+  h1{font-family:var(--serif);font-size:clamp(2.1rem,6vw,3.2rem);line-height:1.05;letter-spacing:-0.02em;margin-bottom:16px}
+  h2{font-family:var(--serif);font-size:clamp(1.6rem,4.2vw,2.3rem);line-height:1.12;letter-spacing:-0.02em;margin-bottom:14px}
+  .lead{font-size:1.08rem;color:var(--muted);max-width:560px;line-height:1.6;margin-bottom:30px}
+  .lead strong{color:var(--text);font-weight:600}
+  .tiny{font-size:0.84rem;color:var(--muted);margin-top:16px}
+
+  .btn{display:inline-flex;align-items:center;gap:10px;background:var(--green);color:#fff;border:none;cursor:pointer;
+    font-family:var(--sans);font-size:1.02rem;font-weight:600;padding:15px 30px;border-radius:12px;text-decoration:none;
+    transition:transform .15s,box-shadow .2s,background .2s}
+  .btn:hover{background:#2e8f5a;transform:translateY(-2px);box-shadow:0 10px 30px rgba(61,168,110,.3)}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;background:var(--green)}
+  .btn .arrow{transition:transform .2s}.btn:hover .arrow{transform:translateX(4px)}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);padding:13px 22px;font-size:0.92rem}
+  .btn-ghost:hover{background:var(--surface);color:var(--text);transform:none;box-shadow:none}
+  .navrow{display:flex;align-items:center;gap:14px;margin-top:36px;flex-wrap:wrap}
+
+  /* climate cards */
+  .zone-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+  .zone-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:22px 20px;
+    cursor:pointer;text-align:left;color:var(--text);transition:border-color .18s,transform .15s,background .18s;font-family:var(--sans)}
+  .zone-card:hover{border-color:var(--green);transform:translateY(-3px);background:var(--surface-2)}
+  .zone-card.sel{border-color:var(--green);background:var(--surface-2);box-shadow:0 0 0 3px var(--green-dim)}
+  .zone-card .z-emoji{font-size:1.8rem;display:block;margin-bottom:10px}
+  .zone-card .z-name{font-weight:700;font-size:1.06rem;margin-bottom:3px}
+  .zone-card .z-sub{font-size:0.82rem;color:var(--muted)}
+
+  /* stepper */
+  .stepper{display:flex;align-items:center;gap:18px;background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius);padding:18px 22px;margin:8px 0 6px;max-width:340px}
+  .stepper button{width:44px;height:44px;border-radius:12px;border:1px solid var(--border);background:var(--surface-2);
+    color:var(--green-bright);font-size:1.5rem;font-weight:700;cursor:pointer;line-height:1;transition:border-color .15s,background .15s}
+  .stepper button:hover{border-color:var(--green);background:var(--green-dim)}
+  .stepper .val{font-family:var(--serif);font-size:2rem;min-width:54px;text-align:center;color:var(--text)}
+  .stepper .unit{font-size:0.9rem;color:var(--muted)}
+
+  /* space meter */
+  .meter{margin:18px 0 8px;max-width:420px}
+  .meter-track{height:10px;background:var(--border);border-radius:99px;overflow:hidden}
+  .meter-fill{height:100%;width:0;background:linear-gradient(90deg,var(--green),var(--green-bright));transition:width .3s}
+  .meter-fill.over{background:linear-gradient(90deg,#c0633a,var(--tomato))}
+  .meter-label{font-size:0.84rem;color:var(--muted);margin-top:8px}
+  .meter-label b{color:var(--text)}
+  .meter-label .over-txt{color:var(--tomato);font-weight:600}
+
+  /* crop picker */
+  .pick-group-title{font-size:0.78rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--green);margin:24px 0 12px}
+  .pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .pick{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;
+    transition:border-color .15s,transform .12s;position:relative}
+  .pick:hover{border-color:var(--green);transform:translateY(-2px)}
+  .pick.sel{border-color:var(--green);background:var(--surface-2);box-shadow:0 0 0 2px var(--green-dim)}
+  .pick .p-emoji{font-size:1.7rem;line-height:1}
+  .pick .p-name{font-weight:600;font-size:0.92rem;margin:8px 0 2px}
+  .pick .p-meta{font-size:0.74rem;color:var(--muted)}
+  .pick .p-check{position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border);
+    display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#fff}
+  .pick.sel .p-check{background:var(--green);border-color:var(--green)}
+  .pick .p-squares{display:none;align-items:center;gap:10px;margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
+  .pick.sel .p-squares{display:flex}
+  .pick .p-squares button{width:26px;height:26px;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);
+    color:var(--green-bright);font-weight:700;cursor:pointer;line-height:1}
+  .pick .p-squares .sq{font-size:0.8rem;color:var(--muted);flex:1}
+  .pick .p-squares .sq b{color:var(--text)}
+
+  /* date */
+  input[type=date]{font-family:var(--sans);font-size:1.05rem;background:var(--surface);color:var(--text);
+    border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;color-scheme:dark;max-width:240px;width:100%}
+  input[type=date]:focus{outline:none;border-color:var(--green)}
+
+  /* ===== PLAN VIEW ===== */
+  .plan-head{background:linear-gradient(160deg,#0d2719,#0a1911);border:1px solid var(--green-dim2);border-radius:var(--radius-lg);padding:26px 26px 24px;margin-bottom:8px}
+  .plan-sum{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .badge{font-size:0.76rem;font-weight:600;background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:5px 12px;color:var(--text)}
+  .grow-row{display:flex;align-items:center;gap:14px}
+  .grow-emoji{font-size:2.2rem;line-height:1;flex-shrink:0}
+  .grow-bar-wrap{flex:1}
+  .grow-track{height:12px;background:var(--border);border-radius:99px;overflow:hidden}
+  .grow-fill{height:100%;width:0;background:linear-gradient(90deg,var(--green),var(--green-bright));transition:width .5s cubic-bezier(.3,.7,.3,1)}
+  .grow-label{font-size:0.85rem;color:var(--muted);margin-top:8px}
+  .grow-label b{color:var(--green-bright)}
+
+  .nextup{background:var(--green-dim);border:1px solid var(--green-dim2);border-left:3px solid var(--green);border-radius:var(--radius);
+    padding:14px 18px;margin:16px 0;font-size:0.95rem}
+  .nextup .nu-k{font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--green-bright);font-weight:700;display:block;margin-bottom:3px}
+  .nextup b{color:var(--text)}
+  .nextup.done{background:rgba(217,180,85,0.1);border-color:rgba(217,180,85,0.3);border-left-color:var(--gold)}
+  .nextup.done .nu-k{color:var(--gold)}
+
+  details.teach{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin:14px 0;overflow:hidden}
+  details.teach summary{cursor:pointer;padding:13px 18px;font-size:0.9rem;font-weight:600;color:var(--green-bright);list-style:none;display:flex;align-items:center;gap:8px}
+  details.teach summary::-webkit-details-marker{display:none}
+  details.teach summary::after{content:'+';margin-left:auto;color:var(--muted);font-weight:400;font-size:1.2rem}
+  details.teach[open] summary::after{content:'–'}
+  details.teach .teach-body{padding:0 18px 16px;font-size:0.9rem;color:#c8cad4;line-height:1.65}
+  details.teach .teach-body strong{color:var(--text)}
+
+  .month-group{margin-top:26px}
+  .month-h{font-family:var(--serif);font-size:1.25rem;color:var(--text);margin-bottom:4px;display:flex;align-items:baseline;gap:10px}
+  .month-h .m-count{font-size:0.74rem;color:var(--muted);font-family:var(--sans);font-weight:500}
+  .month-line{height:1px;background:var(--border);margin-bottom:14px}
+
+  .task{display:flex;gap:14px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;transition:opacity .25s,background .2s}
+  .task.harvest{border-color:var(--green-dim2);background:linear-gradient(160deg,rgba(61,168,110,0.08),transparent)}
+  .task.gardenday{border-color:rgba(217,180,85,0.25)}
+  .task .chk{flex-shrink:0;width:26px;height:26px;border-radius:8px;border:2px solid var(--border);background:transparent;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.85rem;transition:background .15s,border-color .15s;margin-top:1px}
+  .task .chk:hover{border-color:var(--green)}
+  .task.checked .chk{background:var(--green);border-color:var(--green)}
+  .task.checked .t-title{text-decoration:line-through;color:var(--muted)}
+  .task .t-emoji{font-size:1.3rem;line-height:1.4;flex-shrink:0}
+  .t-main{flex:1;min-width:0}
+  .t-date{font-size:0.74rem;font-weight:600;color:var(--green-bright);letter-spacing:0.02em;margin-bottom:2px}
+  .task.gardenday .t-date{color:var(--gold)}
+  .t-title{font-weight:600;font-size:0.97rem}
+  .t-sub{font-size:0.84rem;color:var(--muted);margin-top:3px;line-height:1.5}
+  .t-bed{display:inline-block;font-size:0.7rem;font-weight:600;color:var(--green-bright);background:var(--green-dim);border-radius:99px;padding:2px 9px;margin-top:7px}
+
+  .callout{background:var(--green-dim);border-left:3px solid var(--green);border-radius:var(--radius);padding:16px 20px;font-size:0.92rem;color:var(--text);line-height:1.6;margin:20px 0 0}
+  .callout strong{color:var(--green-bright)}
+
+  footer{max-width:720px;margin:0 auto;padding:28px 24px 50px;border-top:1px solid var(--border);color:var(--muted);font-size:0.8rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  footer a{color:var(--green)}
+
+  @media(max-width:560px){.zone-grid{grid-template-columns:1fr 1fr}.pick-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span>Soilworks</div>
+    <div class="brand-tag">Build My Garden</div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-track"><div class="progress-fill" id="pfill"></div></div>
+    <div class="progress-label" id="plabel">Start</div>
+  </div>
+
+  <main class="stage">
+
+    <!-- 0 WELCOME -->
+    <section class="screen active" data-name="Start">
+      <div class="eyebrow">🌱 Free garden planner</div>
+      <h1>Let's build your garden.</h1>
+      <p class="lead">Four quick taps and we'll hand you a <strong>dated, step-by-step plan</strong> — from bare dirt today to the day you pick your first food. Check things off as you go.</p>
+      <div class="navrow">
+        <button class="btn" onclick="go(1)">Build my plan <span class="arrow">→</span></button>
+        <button class="btn-ghost btn" id="resumeBtn" style="display:none" onclick="resume()">↻ Resume my plan</button>
+      </div>
+      <p class="tiny">Takes 60 seconds · No signup · Works offline</p>
+    </section>
+
+    <!-- 1 ZONE -->
+    <section class="screen" data-name="Your climate">
+      <div class="eyebrow">📍 Step 1 of 4</div>
+      <h2>Where do you live?</h2>
+      <p class="lead">Pick the one that matches your winters. This sets your frost dates — the backbone of the whole schedule.</p>
+      <div class="zone-grid" id="zoneGrid">
+        <button class="zone-card" data-zone="cold" onclick="setZone('cold',this)"><span class="z-emoji">❄️</span><div class="z-name">Cold North</div><div class="z-sub">Snowy winters · Zones 3–4</div></button>
+        <button class="zone-card" data-zone="mild" onclick="setZone('mild',this)"><span class="z-emoji">🍂</span><div class="z-name">In-between</div><div class="z-sub">Real seasons · Zones 5–7</div></button>
+        <button class="zone-card" data-zone="warm" onclick="setZone('warm',this)"><span class="z-emoji">☀️</span><div class="z-name">Warm South</div><div class="z-sub">Mild winters · Zones 8–9</div></button>
+        <button class="zone-card" data-zone="tropical" onclick="setZone('tropical',this)"><span class="z-emoji">🌴</span><div class="z-name">Hot &amp; Humid</div><div class="z-sub">FL / Gulf · Zones 9b–10+</div></button>
+      </div>
+      <div class="navrow"><button class="btn" id="z-next" disabled onclick="go(2)">Next <span class="arrow">→</span></button><button class="btn-ghost btn" onclick="go(0)">← Back</button></div>
+    </section>
+
+    <!-- 2 SPACE -->
+    <section class="screen" data-name="Your space">
+      <div class="eyebrow">📐 Step 2 of 4</div>
+      <h2>How much room?</h2>
+      <p class="lead">Count in <strong>4×4-ft beds</strong> — each one is 16 planting squares. Don't overthink it; start with 1 or 2. You can always add more later.</p>
+      <div class="stepper">
+        <button onclick="setBeds(-1)">−</button>
+        <div class="val" id="bedVal">1</div>
+        <div class="unit">bed<span id="bedS"></span><br>(<span id="sqTotal">16</span> squares)</div>
+        <button onclick="setBeds(1)">+</button>
+      </div>
+      <p class="tiny">No bed yet? No problem — your plan starts by building one. A 4×4 box on the grass is all it takes.</p>
+      <div class="navrow"><button class="btn" onclick="go(3)">Next <span class="arrow">→</span></button><button class="btn-ghost btn" onclick="go(1)">← Back</button></div>
+    </section>
+
+    <!-- 3 CROPS -->
+    <section class="screen" data-name="Your crops">
+      <div class="eyebrow">🥕 Step 3 of 4</div>
+      <h2>What do you want to grow?</h2>
+      <p class="lead">Tap to add. We start you with the <strong>money-savers</strong> up top; calorie crops below are how you go further. Use −/+ to give each more or fewer squares.</p>
+      <div class="meter">
+        <div class="meter-track"><div class="meter-fill" id="meterFill"></div></div>
+        <div class="meter-label" id="meterLabel"><b>0</b> of <b>16</b> squares used</div>
+      </div>
+      <div class="pick-group-title">⚡ Fast wins &amp; money-savers</div>
+      <div class="pick-grid" id="grpSave"></div>
+      <div class="pick-group-title">🥔 Calorie crops — go further</div>
+      <div class="pick-grid" id="grpCal"></div>
+      <div class="navrow"><button class="btn" id="c-next" disabled onclick="go(4)">Next <span class="arrow">→</span></button><button class="btn-ghost btn" onclick="go(2)">← Back</button></div>
+    </section>
+
+    <!-- 4 WHEN -->
+    <section class="screen" data-name="Start date">
+      <div class="eyebrow">📅 Step 4 of 4</div>
+      <h2>When are you starting?</h2>
+      <p class="lead">Today is fine — that's the point. We'll slot every crop into its right window from here. Anything out of season gets scheduled for when it actually wants to go in.</p>
+      <input type="date" id="startDate" />
+      <p class="tiny">Tip: leave it on today and just start. The plan adapts to whatever date you pick.</p>
+      <div class="navrow"><button class="btn" onclick="buildPlan()">Build my garden plan <span class="arrow">→</span></button><button class="btn-ghost btn" onclick="go(3)">← Back</button></div>
+    </section>
+
+    <!-- 5 PLAN -->
+    <section class="screen" data-name="Your plan">
+      <div class="plan-head">
+        <div class="plan-sum" id="planSum"></div>
+        <div class="grow-row">
+          <div class="grow-emoji" id="growEmoji">🌱</div>
+          <div class="grow-bar-wrap">
+            <div class="grow-track"><div class="grow-fill" id="growFill"></div></div>
+            <div class="grow-label" id="growLabel">Bare dirt — let's begin.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nextup" id="nextUp"></div>
+
+      <details class="teach">
+        <summary>📖 New to this? The whole method in 30 seconds</summary>
+        <div class="teach-body">
+          <p><strong>The 3 moves (your one day a month):</strong> ① <strong>Whack</strong> — cut down what's finished, leave it on the soil. ② <strong>Feed</strong> — scatter a thin layer of compost on top. ③ <strong>Plant</strong> — poke in the next seeds. The other 29 days you just pick and eat.</p>
+          <p style="margin-top:10px"><strong>The soil secret:</strong> you don't fix your yard's dirt — you fill the bed with good soil and garden <em>above</em> it. Sandy, clay, wrong-pH? Doesn't matter; roots never touch it.</p>
+          <p style="margin-top:10px"><strong>Scared you'll kill it?</strong> You start small. If something flops, you're out a $30 weekend, not your dream. Plants <em>want</em> to grow — your job is just not getting in the way.</p>
+        </div>
+      </details>
+
+      <div id="timeline"></div>
+
+      <div class="callout"><strong>Heads up:</strong> dates are typical for your climate, not gospel — local weather shifts things a week or two. Watch the sky, trust your finger in the soil (dry 2&nbsp;inches down = water), and you'll be fine.</div>
+
+      <div class="navrow">
+        <button class="btn-ghost btn" onclick="go(3)">✎ Change crops</button>
+        <button class="btn-ghost btn" onclick="startOver()">↺ Start over</button>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <span>© 2026 Soilworks · a Smithworks brand</span>
+    <span>Prefer to read first? <a href="grow-guide-interactive.html">The Lazy Garden guide →</a></span>
+  </footer>
+
+<script>
+  // ============ DATA ============
+  const ZONES = {
+    cold:    {label:'Cold North', sub:'Zones 3–4', LF:[4,15], FF:[8,25]},
+    mild:    {label:'In-between', sub:'Zones 5–7', LF:[3,20], FF:[9,15]},
+    warm:    {label:'Warm South', sub:'Zones 8–9', LF:[2,10], FF:[10,20]},
+    tropical:{label:'Hot & Humid', sub:'Zones 9b–10+', LF:[1,1], FF:[11,20]}
+  };
+
+  // season: quick | cool | warm | hot ; sow: seed|transplant|slip|tuber ; cont = keeps producing
+  const CROPS = {
+    radish:  {name:'Radishes', emoji:'🔴', grp:'save', season:'quick', dtm:25, harvest:14, sow:'seed', cont:true, def:1,
+              meta:'~25 days', teach:'Drop seeds across the square, thin to one finger apart once, pull when the tops bulge. Re-sow a pinch every 2 weeks for a steady supply.'},
+    greens:  {name:'Salad greens', emoji:'🥗', grp:'save', season:'quick', dtm:30, harvest:50, sow:'seed', cont:true, def:2,
+              meta:'~3 weeks', teach:'Scatter seeds, barely cover. Once leaves are 3–4 in, snip the outer ones — the plant keeps refilling for weeks.'},
+    herbs:   {name:'Fresh herbs', emoji:'🌿', grp:'save', season:'warm', dtm:30, harvest:90, sow:'transplant', cont:true, def:1,
+              meta:'all season', teach:'Easiest from a starter plant. Pinch the tips weekly and it bushes out instead of bolting. Biggest money-saver per inch.'},
+    tomato:  {name:'Cherry tomatoes', emoji:'🍅', grp:'save', season:'warm', dtm:60, harvest:60, sow:'transplant', cont:true, def:2,
+              meta:'~60 days', teach:'Plant a starter deep (bury the lower stem), push in a stake, then just pick. One plant throws off hundreds.'},
+    peppers: {name:'Sweet peppers', emoji:'🌶️', grp:'save', season:'warm', dtm:70, harvest:50, sow:'transplant', cont:true, def:2,
+              meta:'~70 days', teach:'Loves heat. Plant a starter after nights stay warm; pick green or wait for color. A few plants feed you all season.'},
+    beans:   {name:'Bush beans', emoji:'🫛', grp:'save', season:'warm', dtm:55, harvest:24, sow:'seed', cont:true, def:2,
+              meta:'~55 days', teach:'Poke seeds in 1 in deep. Once they start, pick every couple days — the more you pick, the more they make.'},
+    carrots: {name:'Carrots', emoji:'🥕', grp:'save', season:'cool', dtm:70, harvest:21, sow:'seed', cont:false, def:1,
+              meta:'~70 days', teach:'Sow thin and keep the top moist until they sprout (the only tricky part). Pull as needed; they store for months in the ground.'},
+    kale:    {name:'Kale', emoji:'🥬', grp:'save', season:'cool', dtm:55, harvest:150, sow:'transplant', cont:true, def:2,
+              meta:'months', teach:'Pick the lower leaves and it keeps growing up. Survives frost — often sweeter after one. Cheapest greens insurance there is.'},
+    potato:  {name:'Potatoes', emoji:'🥔', grp:'cal', season:'cool', dtm:100, harvest:21, sow:'tuber', cont:false, def:4,
+              meta:'~100 days', teach:'Bury seed-potato chunks 4 in deep; pile soil up the stems as they grow ("hilling"). Dig the treasure in fall — stores all winter.'},
+    sweetpot:{name:'Sweet potatoes', emoji:'🍠', grp:'cal', season:'hot', dtm:110, harvest:21, sow:'slip', cont:false, def:4,
+              meta:'~110 days', teach:'Plant rooted "slips" once soil is warm. The vines smother their own weeds — near-zero work for huge calories. Cure 2 weeks before storing.'},
+    drybeans:{name:'Dry beans', emoji:'🫘', grp:'cal', season:'warm', dtm:95, harvest:14, sow:'seed', cont:false, def:4,
+              meta:'~95 days', teach:'Grow like green beans but walk away — let the pods dry brown on the plant, then shell. Protein that stores for years.'},
+    squash:  {name:'Winter squash', emoji:'🎃', grp:'cal', season:'warm', dtm:95, harvest:14, sow:'seed', cont:false, def:4,
+              meta:'~95 days', teach:'Give it a corner to sprawl (into paths is fine). Harvest when the rind is hard and the stem corks. Cures for months of storage.'},
+    corn:    {name:'Corn', emoji:'🌽', grp:'cal', season:'warm', dtm:95, harvest:14, sow:'seed', cont:false, def:4,
+              meta:'~95 days', teach:'Plant in a block (not a row) so it pollinates itself. Let it dry on the stalk for flour/meal, or pick young for the cob.'}
+  };
+
+  // ============ STATE ============
+  let state = { zone:null, beds:1, crops:{}, startDate:null };
+  let plan = [];
+  let doneSet = new Set();
+  const LS = 'soilworks_growplan_v2';
+  const screens = Array.from(document.querySelectorAll('.screen'));
+  let cur = 0;
+
+  // ============ HELPERS ============
+  const DAY = 86400000;
+  function addDays(d,n){ return new Date(d.getTime()+n*DAY); }
+  function dz(year,md){ return new Date(year, md[0], md[1]); }
+  function fmt(d){ return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
+  function fmtMonth(d){ return d.toLocaleDateString('en-US',{month:'long',year:'numeric'}); }
+  function parseDate(v){ const p=v.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+  function totalSquares(){ return state.beds*16; }
+  function usedSquares(){ return Object.values(state.crops).reduce((a,b)=>a+b,0); }
+
+  // ============ NAV ============
+  function go(i){
+    if(i<0||i>=screens.length) return;
+    screens[cur].classList.remove('active'); cur=i; screens[cur].classList.add('active');
+    const total=screens.length-1;
+    document.getElementById('pfill').style.width=(cur/total)*100+'%';
+    document.getElementById('plabel').textContent = cur===0?'Start':(cur===5?'Your plan':'Step '+cur+' of 4 · '+screens[cur].dataset.name);
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  // ============ STEP 1: ZONE ============
+  function setZone(z,el){
+    state.zone=z;
+    document.querySelectorAll('#zoneGrid .zone-card').forEach(c=>c.classList.remove('sel'));
+    el.classList.add('sel');
+    document.getElementById('z-next').disabled=false;
+  }
+
+  // ============ STEP 2: BEDS ============
+  function setBeds(n){
+    state.beds=Math.max(1,Math.min(8,state.beds+n));
+    document.getElementById('bedVal').textContent=state.beds;
+    document.getElementById('bedS').textContent=state.beds>1?'s':'';
+    document.getElementById('sqTotal').textContent=totalSquares();
+  }
+
+  // ============ STEP 3: CROPS ============
+  function buildPickers(){
+    const save=document.getElementById('grpSave'), cal=document.getElementById('grpCal');
+    save.innerHTML=''; cal.innerHTML='';
+    Object.entries(CROPS).forEach(([id,c])=>{
+      const el=document.createElement('div');
+      el.className='pick'; el.id='pick-'+id;
+      el.innerHTML=`<div class="p-check">✓</div>
+        <div class="p-emoji">${c.emoji}</div>
+        <div class="p-name">${c.name}</div>
+        <div class="p-meta">${c.meta}</div>
+        <div class="p-squares">
+          <button onclick="event.stopPropagation();bumpSq('${id}',-1)">−</button>
+          <div class="sq"><b><span id="sq-${id}">0</span></b> sq</div>
+          <button onclick="event.stopPropagation();bumpSq('${id}',1)">+</button>
+        </div>`;
+      el.addEventListener('click',()=>toggleCrop(id));
+      (c.grp==='save'?save:cal).appendChild(el);
+    });
+  }
+  function toggleCrop(id){
+    if(state.crops[id]!=null){ delete state.crops[id]; }
+    else { state.crops[id]=CROPS[id].def; }
+    refreshCrops();
+  }
+  function bumpSq(id,n){
+    if(state.crops[id]==null) state.crops[id]=CROPS[id].def;
+    state.crops[id]=Math.max(1,state.crops[id]+n);
+    refreshCrops();
+  }
+  function refreshCrops(){
+    Object.keys(CROPS).forEach(id=>{
+      const el=document.getElementById('pick-'+id);
+      const on=state.crops[id]!=null;
+      el.classList.toggle('sel',on);
+      document.getElementById('sq-'+id).textContent=on?state.crops[id]:0;
+    });
+    const used=usedSquares(), tot=totalSquares(), pct=Math.min(100,Math.round(used/tot*100));
+    const fill=document.getElementById('meterFill'), lab=document.getElementById('meterLabel');
+    fill.style.width=pct+'%'; fill.classList.toggle('over',used>tot);
+    lab.innerHTML = used>tot
+      ? `<b>${used}</b> of <b>${tot}</b> squares — <span class="over-txt">${used-tot} over. Add a bed or trim a crop.</span>`
+      : `<b>${used}</b> of <b>${tot}</b> squares used`;
+    document.getElementById('c-next').disabled = Object.keys(state.crops).length===0;
+  }
+
+  // ============ STEP 4 -> BUILD ============
+  function resolvePlantDate(c, LF, FF, start){
+    let wins=[];
+    const m=c.dtm;
+    if(c.season==='quick') wins=[{s:addDays(LF,-28), e:addDays(FF,-m-7)}];
+    else if(c.season==='warm') wins=[{s:addDays(LF,7), e:addDays(FF,-m-10)}];
+    else if(c.season==='hot') wins=[{s:addDays(LF,21), e:addDays(FF,-m-14)}];
+    else if(c.season==='cool') wins=[{s:addDays(LF,-28), e:addDays(LF,21)}, {s:addDays(FF,-m-45), e:addDays(FF,-m-10)}];
+    const ny=wins.map(w=>({s:addDays(w.s,365), e:addDays(w.e,365)}));
+    for(const w of wins.concat(ny)){
+      if(w.e.getTime() < start.getTime()) continue;
+      const pd=new Date(Math.max(start.getTime(), w.s.getTime()));
+      if(pd.getTime() <= w.e.getTime()) return pd;
+    }
+    return null;
+  }
+
+  function buildPlan(){
+    state.startDate = parseDate(document.getElementById('startDate').value);
+    const start = state.startDate;
+    const z = ZONES[state.zone];
+    const yr = start.getFullYear();
+    const LF = dz(yr, z.LF), FF = dz(yr, z.FF);
+    plan = [];
+
+    // bed allocation
+    let cursor=0;
+    const bedLabel = sq=>{ const sb=Math.floor(cursor/16)+1; cursor+=sq; const eb=Math.floor((cursor-1)/16)+1; return sb===eb?`Bed ${sb}`:`Beds ${sb}–${eb}`; };
+
+    // setup task
+    plan.push({ id:'setup', date:start, type:'setup', emoji:'🛠️', title:`Build & fill your bed${state.beds>1?'s':''}`,
+      sub:`Set a 4×4 box (×${state.beds}) on the grass, lay cardboard, fill with soil + compost, string a 16-square grid. No digging.`,
+      lesson:`<strong>Don't fix your dirt — skip it.</strong> Cardboard smothers the grass; the good soil you pour on top is where everything grows. This one move deletes sandy soil, clay, rocks and wrong pH all at once.` });
+
+    // crops
+    Object.entries(state.crops).forEach(([id,sq])=>{
+      const c=CROPS[id];
+      const pd=resolvePlantDate(c,LF,FF,start);
+      const bed=bedLabel(sq);
+      if(!pd){ return; }
+      const sowVerb = c.sow==='transplant'?'Plant starters of':(c.sow==='slip'?'Plant slips of':(c.sow==='tuber'?'Plant seed':'Sow'));
+      const late = pd.getTime() > addDays(start,21).getTime();
+      plan.push({ id:'sow-'+id, date:pd, type:'sow', emoji:c.emoji, bed,
+        title:`${sowVerb} ${c.name}${c.sow==='tuber'?' potatoes':''}`,
+        sub:(late?`In season for you around now — `:``)+c.teach,
+        lesson:null });
+      // first harvest
+      const fh=addDays(pd,c.dtm);
+      if(c.cont){
+        const end=addDays(fh,c.harvest);
+        plan.push({ id:'harv-'+id, date:fh, type:'harvest', emoji:'🎉', bed,
+          title:`First ${c.name} — start picking!`,
+          sub:`Keep harvesting through ~${fmt(end)}. The more you pick, the more it gives.` });
+      } else {
+        plan.push({ id:'harv-'+id, date:fh, type:'harvest', emoji:'🎉', bed,
+          title:`Harvest your ${c.name}!`,
+          sub:`Pull/dig the whole crop around now. ${id==='potato'||id==='sweetpot'||id==='squash'?'Then cure & store for the winter.':''}` });
+      }
+    });
+
+    // monthly garden days (the "1 day a month")
+    let gd = new Date(start.getFullYear(), start.getMonth()+1, start.getDate());
+    for(let i=0;i<6;i++){
+      plan.push({ id:'gday-'+i, date:new Date(gd), type:'gardenday', emoji:'🔁',
+        title:`Garden day — Whack · Feed · Plant`,
+        sub:`Your one workday this month: clear a finished patch, scatter compost, replant it. Otherwise just pick and eat.`,
+        lesson:`<strong>Stagger it:</strong> only restart one patch each month. That keeps food coming continuously and means you never weed — a patch you'll clear next month isn't worth fussing over.` });
+      gd = new Date(gd.getFullYear(), gd.getMonth()+1, gd.getDate());
+    }
+
+    plan.sort((a,b)=> a.date - b.date);
+    doneSet = new Set();
+    saveAll();
+    renderPlan();
+    go(5);
+  }
+
+  // ============ RENDER PLAN ============
+  function renderPlan(){
+    const z=ZONES[state.zone];
+    document.getElementById('planSum').innerHTML =
+      `<span class="badge">${z.label}</span><span class="badge">${state.beds} bed${state.beds>1?'s':''}</span>`+
+      `<span class="badge">${Object.keys(state.crops).length} crops</span><span class="badge">Start ${fmt(state.startDate)}</span>`;
+
+    // timeline grouped by month
+    const tl=document.getElementById('timeline'); tl.innerHTML='';
+    let curMonth='';
+    plan.forEach(t=>{
+      const mk=fmtMonth(t.date);
+      if(mk!==curMonth){
+        curMonth=mk;
+        const grp=document.createElement('div'); grp.className='month-group';
+        const cnt=plan.filter(x=>fmtMonth(x.date)===mk).length;
+        grp.innerHTML=`<div class="month-h">${mk}<span class="m-count">${cnt} step${cnt>1?'s':''}</span></div><div class="month-line"></div>`;
+        grp.dataset.month=mk;
+        tl.appendChild(grp);
+      }
+      const grp=[...tl.children].find(g=>g.dataset && g.dataset.month===mk);
+      const checked=doneSet.has(t.id);
+      const div=document.createElement('div');
+      div.className='task '+t.type+(checked?' checked':'');
+      div.innerHTML=`
+        <div class="chk" onclick="toggleTask('${t.id}')">${checked?'✓':''}</div>
+        <div class="t-emoji">${t.emoji}</div>
+        <div class="t-main">
+          <div class="t-date">${fmt(t.date)}</div>
+          <div class="t-title">${t.title}</div>
+          ${t.sub?`<div class="t-sub">${t.sub}</div>`:''}
+          ${t.bed?`<span class="t-bed">${t.bed}</span>`:''}
+          ${t.lesson?`<details class="teach" style="margin:10px 0 0"><summary>why?</summary><div class="teach-body">${t.lesson}</div></details>`:''}
+        </div>`;
+      grp.appendChild(div);
+    });
+    updateProgress();
+  }
+
+  function toggleTask(id){
+    if(doneSet.has(id)) doneSet.delete(id); else doneSet.add(id);
+    // update the single row
+    const rows=document.querySelectorAll('.task');
+    renderPlanRowsState();
+    saveAll();
+    updateProgress();
+  }
+  function renderPlanRowsState(){
+    // re-render is simplest & safe
+    const tl=document.getElementById('timeline');
+    // toggle classes without full rebuild
+    document.querySelectorAll('.task').forEach(()=>{});
+    renderPlan();
+  }
+
+  function updateProgress(){
+    const total=plan.length, done=plan.filter(t=>doneSet.has(t.id)).length;
+    const pct= total? Math.round(done/total*100):0;
+    document.getElementById('growFill').style.width=pct+'%';
+    const emojis=[['🌱',0],['🌿',20],['🪴',45],['🥬',70],['🥗',100]];
+    let e='🌱'; emojis.forEach(([em,th])=>{ if(pct>=th) e=em; });
+    document.getElementById('growEmoji').textContent= pct>=100?'🥗':e;
+    document.getElementById('growLabel').innerHTML = pct>=100
+      ? `<b>Fully harvested — you did it. 🎉</b>`
+      : `<b>${done}</b> of <b>${total}</b> steps done · <b>${pct}%</b> from bare dirt to harvest`;
+    // next up
+    const nu=document.getElementById('nextUp');
+    const next=plan.find(t=>!doneSet.has(t.id));
+    if(next){
+      nu.className='nextup';
+      nu.innerHTML=`<span class="nu-k">👉 Next up</span><b>${fmt(next.date)} — ${next.title}</b>`;
+    } else {
+      nu.className='nextup done';
+      nu.innerHTML=`<span class="nu-k">✓ All done</span><b>Every step checked off. Time to eat. 🥗</b>`;
+    }
+  }
+
+  // ============ PERSISTENCE ============
+  function saveAll(){
+    try{ localStorage.setItem(LS, JSON.stringify({
+      state:{...state, startDate: state.startDate? state.startDate.toISOString():null},
+      done:[...doneSet]
+    })); }catch(e){}
+  }
+  function loadSaved(){
+    try{ const raw=localStorage.getItem(LS); if(!raw) return null; return JSON.parse(raw); }catch(e){ return null; }
+  }
+  function resume(){
+    const s=loadSaved(); if(!s) return;
+    state=s.state; state.startDate=new Date(s.state.startDate);
+    doneSet=new Set(s.done||[]);
+    // rebuild plan deterministically
+    rebuildFromState();
+    renderPlan(); go(5);
+  }
+  function rebuildFromState(){
+    // re-run buildPlan logic without resetting doneSet
+    const saved=new Set(doneSet);
+    const sd=state.startDate;
+    document.getElementById('startDate').value = sd.toISOString().slice(0,10);
+    // temporarily run builder but keep done
+    buildPlanCore();
+    doneSet=saved;
+  }
+  function buildPlanCore(){
+    // identical to buildPlan but no nav/save/done reset — used by resume
+    const start=state.startDate, z=ZONES[state.zone], yr=start.getFullYear();
+    const LF=dz(yr,z.LF), FF=dz(yr,z.FF); plan=[];
+    let cursor=0; const bedLabel=sq=>{const sb=Math.floor(cursor/16)+1;cursor+=sq;const eb=Math.floor((cursor-1)/16)+1;return sb===eb?`Bed ${sb}`:`Beds ${sb}–${eb}`;};
+    plan.push({id:'setup',date:start,type:'setup',emoji:'🛠️',title:`Build & fill your bed${state.beds>1?'s':''}`,sub:`Set a 4×4 box (×${state.beds}) on the grass, lay cardboard, fill with soil + compost, string a 16-square grid. No digging.`,lesson:`<strong>Don't fix your dirt — skip it.</strong> Cardboard smothers the grass; the good soil you pour on top is where everything grows. This one move deletes sandy soil, clay, rocks and wrong pH all at once.`});
+    Object.entries(state.crops).forEach(([id,sq])=>{
+      const c=CROPS[id]; const pd=resolvePlantDate(c,LF,FF,start); const bed=bedLabel(sq); if(!pd) return;
+      const sowVerb=c.sow==='transplant'?'Plant starters of':(c.sow==='slip'?'Plant slips of':(c.sow==='tuber'?'Plant seed':'Sow'));
+      const late=pd.getTime()>addDays(start,21).getTime();
+      plan.push({id:'sow-'+id,date:pd,type:'sow',emoji:c.emoji,bed,title:`${sowVerb} ${c.name}${c.sow==='tuber'?' potatoes':''}`,sub:(late?`In season for you around now — `:``)+c.teach,lesson:null});
+      const fh=addDays(pd,c.dtm);
+      if(c.cont){const end=addDays(fh,c.harvest);plan.push({id:'harv-'+id,date:fh,type:'harvest',emoji:'🎉',bed,title:`First ${c.name} — start picking!`,sub:`Keep harvesting through ~${fmt(end)}. The more you pick, the more it gives.`});}
+      else{plan.push({id:'harv-'+id,date:fh,type:'harvest',emoji:'🎉',bed,title:`Harvest your ${c.name}!`,sub:`Pull/dig the whole crop around now. ${id==='potato'||id==='sweetpot'||id==='squash'?'Then cure & store for the winter.':''}`});}
+    });
+    let gd=new Date(start.getFullYear(),start.getMonth()+1,start.getDate());
+    for(let i=0;i<6;i++){plan.push({id:'gday-'+i,date:new Date(gd),type:'gardenday',emoji:'🔁',title:`Garden day — Whack · Feed · Plant`,sub:`Your one workday this month: clear a finished patch, scatter compost, replant it. Otherwise just pick and eat.`,lesson:`<strong>Stagger it:</strong> only restart one patch each month. That keeps food coming continuously and means you never weed — a patch you'll clear next month isn't worth fussing over.`});gd=new Date(gd.getFullYear(),gd.getMonth()+1,gd.getDate());}
+    plan.sort((a,b)=>a.date-b.date);
+  }
+
+  function startOver(){
+    try{ localStorage.removeItem(LS); }catch(e){}
+    state={zone:null,beds:1,crops:{},startDate:null}; plan=[]; doneSet=new Set();
+    document.querySelectorAll('#zoneGrid .zone-card').forEach(c=>c.classList.remove('sel'));
+    document.getElementById('z-next').disabled=true;
+    setBeds(0); buildPickers(); refreshCrops();
+    go(0);
+  }
+
+  // ============ INIT ============
+  (function init(){
+    buildPickers(); refreshCrops(); setBeds(0);
+    const t=new Date(); document.getElementById('startDate').value=t.toISOString().slice(0,10);
+    const s=loadSaved();
+    if(s && s.state && s.state.zone){ document.getElementById('resumeBtn').style.display='inline-flex'; }
+  })();
+</script>
+</body>
+</html>
